@@ -56,6 +56,7 @@ import { startSchedulerLoop } from './task-scheduler.js';
 import { Channel, NewMessage, RegisteredGroup } from './types.js';
 import { parseImageReferences } from './image.js';
 import { logger } from './logger.js';
+import { classifyComplexity, needsUpgrade, readModelPreferences, selectModel } from './model-selection.js';
 
 // Re-export for backwards compatibility during refactor
 export { escapeXml, formatMessages } from './router.js';
@@ -317,6 +318,15 @@ async function runAgent(
       }
     : undefined;
 
+  const preferences = readModelPreferences(group.folder);
+  const tier = classifyComplexity(prompt, {
+    hasImages: imageAttachments.length > 0,
+  });
+  const model = preferences[tier];
+  queue.setModelTier(chatJid, tier);
+
+  logger.info({ group: group.name, tier, model }, 'Model selected');
+
   try {
     const output = await runContainerAgent(
       group,
@@ -327,6 +337,7 @@ async function runAgent(
         chatJid,
         isMain,
         assistantName: ASSISTANT_NAME,
+        model,
         ...(imageAttachments.length > 0 && { imageAttachments }),
       },
       (proc, containerName) =>
@@ -428,7 +439,17 @@ async function startMessageLoop(): Promise<void> {
             allPending.length > 0 ? allPending : groupMessages;
           const formatted = formatMessages(messagesToSend, TIMEZONE);
 
-          if (queue.sendMessage(chatJid, formatted)) {
+          // Check if the new message needs a stronger model than the running container
+          const currentTier = queue.getModelTier(chatJid);
+          const newTier = classifyComplexity(formatted);
+          if (currentTier && needsUpgrade(currentTier, newTier)) {
+            logger.info(
+              { chatJid, currentTier, newTier },
+              'Model upgrade needed, restarting container',
+            );
+            queue.closeStdin(chatJid);
+            queue.enqueueMessageCheck(chatJid);
+          } else if (queue.sendMessage(chatJid, formatted)) {
             logger.debug(
               { chatJid, count: messagesToSend.length },
               'Piped messages to active container',

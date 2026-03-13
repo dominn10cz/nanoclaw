@@ -19,6 +19,7 @@ import {
 import { GroupQueue } from './group-queue.js';
 import { resolveGroupFolderPath } from './group-folder.js';
 import { logger } from './logger.js';
+import { readModelPreferences, selectModel } from './model-selection.js';
 import { RegisteredGroup, ScheduledTask } from './types.js';
 
 /**
@@ -169,6 +170,11 @@ async function runTask(
   };
 
   try {
+    const preferences = readModelPreferences(task.group_folder);
+    const model = selectModel(task.prompt, preferences, {
+      isScheduledTask: true,
+    });
+
     const output = await runContainerAgent(
       group,
       {
@@ -179,6 +185,7 @@ async function runTask(
         isMain,
         isScheduledTask: true,
         assistantName: ASSISTANT_NAME,
+        model,
       },
       (proc, containerName) =>
         deps.onProcess(task.chat_jid, proc, containerName, task.group_folder),

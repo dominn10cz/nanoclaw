@@ -4,6 +4,7 @@ import path from 'path';
 
 import { DATA_DIR, MAX_CONCURRENT_CONTAINERS } from './config.js';
 import { logger } from './logger.js';
+import { ComplexityTier } from './model-selection.js';
 
 interface QueuedTask {
   id: string;
@@ -24,6 +25,7 @@ interface GroupState {
   process: ChildProcess | null;
   containerName: string | null;
   groupFolder: string | null;
+  modelTier: ComplexityTier | null;
   retryCount: number;
 }
 
@@ -48,6 +50,7 @@ export class GroupQueue {
         process: null,
         containerName: null,
         groupFolder: null,
+        modelTier: null,
         retryCount: 0,
       };
       this.groups.set(groupJid, state);
@@ -177,6 +180,14 @@ export class GroupQueue {
     }
   }
 
+  setModelTier(groupJid: string, tier: ComplexityTier): void {
+    this.getGroup(groupJid).modelTier = tier;
+  }
+
+  getModelTier(groupJid: string): ComplexityTier | null {
+    return this.getGroup(groupJid).modelTier;
+  }
+
   /**
    * Signal the active container to wind down by writing a close sentinel.
    */
@@ -226,6 +237,7 @@ export class GroupQueue {
       state.process = null;
       state.containerName = null;
       state.groupFolder = null;
+      state.modelTier = null;
       this.activeCount--;
       this.drainGroup(groupJid);
     }
@@ -255,6 +267,7 @@ export class GroupQueue {
       state.process = null;
       state.containerName = null;
       state.groupFolder = null;
+      state.modelTier = null;
       this.activeCount--;
       this.drainGroup(groupJid);
     }
