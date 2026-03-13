@@ -26,6 +26,7 @@ import {
   stopContainer,
 } from './container-runtime.js';
 import { detectAuthMode } from './credential-proxy.js';
+import { readEnvFile } from './env.js';
 import { validateAdditionalMounts } from './mount-security.js';
 import { RegisteredGroup } from './types.js';
 
@@ -42,7 +43,6 @@ export interface ContainerInput {
   isScheduledTask?: boolean;
   assistantName?: string;
   imageAttachments?: Array<{ relativePath: string; mediaType: string }>;
-
 }
 
 export interface ContainerOutput {
@@ -78,8 +78,7 @@ function buildVolumeMounts(
       readonly: true,
     });
 
-    // Shadow .env so the agent cannot read secrets from the mounted project root.
-    // Credentials are injected by the credential proxy, never exposed to containers.
+    // .env shadowing: mount /dev/null over .env so the agent cannot read host secrets
     const envFile = path.join(projectRoot, '.env');
     if (fs.existsSync(envFile)) {
       mounts.push({
@@ -239,6 +238,12 @@ function buildContainerArgs(
     args.push('-e', 'ANTHROPIC_API_KEY=placeholder');
   } else {
     args.push('-e', 'CLAUDE_CODE_OAUTH_TOKEN=placeholder');
+  }
+
+  // Pass Supabase access token if configured
+  const { SUPABASE_ACCESS_TOKEN } = readEnvFile(['SUPABASE_ACCESS_TOKEN']);
+  if (SUPABASE_ACCESS_TOKEN) {
+    args.push('-e', `SUPABASE_ACCESS_TOKEN=${SUPABASE_ACCESS_TOKEN}`);
   }
 
   // Runtime-specific args for host gateway resolution
