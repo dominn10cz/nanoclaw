@@ -370,10 +370,7 @@ export async function initBotPool(tokens: string[]): Promise<void> {
     }
   }
   if (poolApis.length > 0) {
-    logger.info(
-      { count: poolApis.length },
-      'Telegram bot pool ready',
-    );
+    logger.info({ count: poolApis.length }, 'Telegram bot pool ready');
   } else {
     logger.warn('No pool bots initialized — swarm will use main bot');
   }
@@ -418,7 +415,8 @@ export async function sendPoolMessage(
   }
 
   const api = poolApis[poolIdx];
-  const numericId = typeof chatId === 'string' ? chatId.replace(/^tg:/, '') : chatId;
+  const numericId =
+    typeof chatId === 'string' ? chatId.replace(/^tg:/, '') : chatId;
 
   const MAX_LENGTH = 4096;
   const chunks: string[] = [];
