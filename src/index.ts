@@ -56,7 +56,12 @@ import { startSchedulerLoop } from './task-scheduler.js';
 import { Channel, NewMessage, RegisteredGroup } from './types.js';
 import { parseImageReferences } from './image.js';
 import { logger } from './logger.js';
-import { classifyComplexity, needsUpgrade, readModelPreferences, selectModel } from './model-selection.js';
+import {
+  classifyComplexity,
+  needsUpgrade,
+  readModelPreferences,
+  selectModel,
+} from './model-selection.js';
 
 // Re-export for backwards compatibility during refactor
 export { escapeXml, formatMessages } from './router.js';

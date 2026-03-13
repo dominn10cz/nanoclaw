@@ -33,7 +33,11 @@ export interface SelectionContext {
  * Returns defaults if no preferences file exists.
  */
 export function readModelPreferences(groupFolder: string): ModelPreferences {
-  const prefsPath = path.join(GROUPS_DIR, groupFolder, 'model-preferences.json');
+  const prefsPath = path.join(
+    GROUPS_DIR,
+    groupFolder,
+    'model-preferences.json',
+  );
 
   try {
     if (fs.existsSync(prefsPath)) {
