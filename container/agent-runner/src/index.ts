@@ -450,6 +450,7 @@ async function runQuery(
         'mcp__nanoclaw__*',
         'mcp__supabase__*',
         'mcp__gmail__*',
+        'mcp__context7__*'
       ],
       env: sdkEnv,
       permissionMode: 'bypassPermissions',
@@ -474,6 +475,10 @@ async function runQuery(
         gmail: {
           command: 'npx',
           args: ['-y', '@gongrzhe/server-gmail-autoauth-mcp'],
+        },
+        context7: {
+          command: 'npx',
+          args: ['-y', '@upstash/context7-mcp'],
         },
       },
       hooks: {
