@@ -283,8 +283,11 @@ export class GmailChannel implements Channel {
     // Find the main group to deliver the email notification
     // Prefer Telegram main group over WhatsApp main group
     const groups = this.opts.registeredGroups();
-    const mainEntries = Object.entries(groups).filter(([, g]) => g.isMain === true);
-    const mainEntry = mainEntries.find(([jid]) => jid.startsWith('tg:')) || mainEntries[0];
+    const mainEntries = Object.entries(groups).filter(
+      ([, g]) => g.isMain === true,
+    );
+    const mainEntry =
+      mainEntries.find(([jid]) => jid.startsWith('tg:')) || mainEntries[0];
 
     if (!mainEntry) {
       logger.debug(
