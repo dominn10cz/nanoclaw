@@ -20,6 +20,8 @@ Single Node.js process with skill-based channel system. Channels (WhatsApp, Tele
 | `src/db.ts` | SQLite operations |
 | `groups/{name}/CLAUDE.md` | Per-group memory (isolated) |
 | `container/skills/agent-browser.md` | Browser automation tool (available to all agents via Bash) |
+| `scripts/seed-news-digests.ts` | Seed news digest scheduled tasks into DB |
+| `docs/NEWS-DIGEST-SPEC.md` | News digest feature spec and RSS feed list |
 
 ## Skills
 
