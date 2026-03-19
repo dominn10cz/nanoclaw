@@ -17,13 +17,14 @@ DŮLEŽITÉ: Tvůj textový výstup bude přímo odeslán uživateli do chatu. N
 
 ## Instrukce
 
-1. Stáhni těchto 5 RSS feedů (XML):
+1. Stáhni těchto 6 RSS feedů (XML):
 
    - Hacker News (100+ bodů): https://hnrss.org/frontpage?points=100
    - Anthropic Blog: https://www.anthropic.com/rss.xml
    - OpenAI Blog: https://openai.com/blog/rss.xml
    - The Verge: https://www.theverge.com/rss/index.xml
    - Google AI Blog: https://blog.google/technology/ai/rss/
+   - TechCrunch: https://techcrunch.com/feed/
 
    Pro každý feed použij: curl -sL --max-time 15 "<url>"
    Pokud curl selže, zkus WebFetch jako fallback.

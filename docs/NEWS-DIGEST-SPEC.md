@@ -23,6 +23,7 @@ NanoClaw scheduled task (cron) → kontejner fetchne RSS feedy → Claude zparsu
 | OpenAI Blog | `https://openai.com/blog/rss.xml` | GPT/OpenAI novinky |
 | The Verge | `https://www.theverge.com/rss/index.xml` | Tech editorial |
 | Google AI Blog | `https://blog.google/technology/ai/rss/` | Gemini, výzkum |
+| TechCrunch | `https://techcrunch.com/feed/` | Startupy, fundingy, AI novinky |
 
 ### Marketing & Analytics (týdenní digest)
 | Feed | URL | Popis |
