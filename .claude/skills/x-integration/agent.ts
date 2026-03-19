@@ -238,6 +238,8 @@ Retweet with your own comment added.`,
           isError: !result.success
         };
       }
-    )
+    ),
+
   ];
+
 }

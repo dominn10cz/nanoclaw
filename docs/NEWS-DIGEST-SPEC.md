@@ -35,30 +35,48 @@ NanoClaw scheduled task (cron) → kontejner fetchne RSS feedy → Claude zparsu
 
 ## Formát digestu
 
-Každý digest by měl mít tuto strukturu:
+### AI & Tech (sekční formát)
 
 ```
 📰 AI & Tech Digest — {datum}
 
-**Top články dneška:**
+🧠 **AI & LLM**
 
 1. **Název článku** — 1-2 věty shrnutí
    🔗 odkaz
 
+🦾 **Robotika & Hardware**
+
 2. **Název článku** — 1-2 věty shrnutí
    🔗 odkaz
 
-...max 5-7 článků...
+💻 **Tech & Dev**
+
+3. **Název článku** — 1-2 věty shrnutí
+   🔗 odkaz
 
 💡 **Zajímavý trend:** volitelná 1 věta o tom co spojuje dnešní novinky
 ```
 
-Pro marketing digest stejný formát, ale s hlavičkou `📊 Marketing & Analytics Digest — týden {číslo týdne}`.
+Sekce bez obsahu se vynechávají. Celkem 7-10 položek z RSS zdrojů.
+
+### Marketing & Analytics
+
+```
+📊 Marketing & Analytics Digest — týden {číslo týdne}
+
+**Top články tohoto týdne:**
+
+1. **Název článku** — 1-2 věty shrnutí
+   🔗 odkaz
+
+...max 5-7 článků...
+```
 
 ## Pravidla
 
 - **Jazyk:** česky (i když zdroje jsou anglicky)
-- **Max 5-7 článků** na digest — kvalita > kvantita
+- **AI digest: 7-10 článků** ve 3 sekcích, **Marketing: 5-7 článků** — kvalita > kvantita
 - **Seřadit podle relevance**, ne chronologicky
 - **Přeskočit** PR/marketing články bez substance, duplicity, a články starší než 24h (denní) / 7 dní (týdenní)
 - **Žádné paywall články** — pokud feed obsahuje jen teaser, zmínit ale označit jako paywall
@@ -87,7 +105,7 @@ news-digests/
    - AI digest: `30 9 * * *` (denně 9:30)
    - Marketing digest: `0 10 * * 1` (pondělí 10:00)
    - Poznámka: po migraci na Hetzner VPS přesunout na 7:00 / 8:00
-2. Spuštění: `npx tsx scripts/seed-news-digests.ts`
+2. Spuštění: `npx tsx scripts/seed-news-digests.ts` (nebo `--update` pro aktualizaci existujících promptů)
 3. Task prompt obsahuje:
    - Seznam RSS URL k fetchnutí (curl)
    - Instrukce pro formát výstupu

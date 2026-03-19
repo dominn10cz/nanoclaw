@@ -6,7 +6,7 @@
  */
 
 import { CronExpressionParser } from 'cron-parser';
-import { initDatabase, createTask, getTaskById } from '../src/db.js';
+import { initDatabase, createTask, getTaskById, updateTask } from '../src/db.js';
 import { TIMEZONE } from '../src/config.js';
 
 initDatabase();
@@ -33,24 +33,37 @@ DŮLEŽITÉ: Tvůj textový výstup bude přímo odeslán uživateli do chatu. N
 3. Filtrování:
    - Zahrň pouze články publikované v posledních 24 hodinách.
    - Přeskoč PR/marketing fluff bez technické substance.
-   - Deduplikuj — pokud víc feedů pokrývá stejné téma, vyber nejlepší zdroj.
+   - Deduplikuj — pokud víc zdrojů pokrývá stejné téma, vyber nejlepší zdroj.
    - Pokud článek vypadá jako paywall-only (jen teaser bez obsahu), označ ho [paywall].
 
-4. Vyber 5–7 nejzajímavějších článků a seřaď je podle relevance (ne chronologicky).
+4. Vyber 7–10 nejzajímavějších položek a rozděl je do 3 sekcí:
+   - 🧠 **AI & LLM** — nové modely, výzkum, API změny, prompt engineering
+   - 🦾 **Robotika & Hardware** — roboti, čipy, embedded AI, fyzický svět
+   - 💻 **Tech & Dev** — nástroje, frameworky, open source, developer novinky
+
+   Každá sekce by měla mít 2-4 položky. Pokud sekce nemá nic, vynech ji.
 
 5. Výstup formátuj PŘESNĚ takto (vše česky, přeložené titulky i shrnutí):
 
 📰 AI & Tech Digest — {dnešní datum, formát "19. března 2026"}
 
-**Top články dneška:**
+🧠 **AI & LLM**
 
-1. **Přeložený název článku** — 1-2 věty shrnutí česky
+1. **Přeložený název** — 1-2 věty shrnutí česky
    🔗 odkaz
 
-2. **Přeložený název článku** — 1-2 věty shrnutí česky
+2. **Přeložený název** — 1-2 věty shrnutí česky
    🔗 odkaz
 
-...pokračuj až do 5-7 článků...
+🦾 **Robotika & Hardware**
+
+3. **Přeložený název** — 1-2 věty shrnutí česky
+   🔗 odkaz
+
+💻 **Tech & Dev**
+
+4. **Přeložený název** — 1-2 věty shrnutí česky
+   🔗 odkaz
 
 💡 **Zajímavý trend:** 1 věta o tom, co spojuje dnešní novinky (volitelné, jen pokud je to přirozené).
 
@@ -130,10 +143,18 @@ const tasks = [
   },
 ];
 
+const forceUpdate = process.argv.includes('--update');
+
 for (const task of tasks) {
   const existing = getTaskById(task.id);
-  if (existing) {
-    console.log(`⏭  Task "${task.id}" already exists, skipping.`);
+  if (existing && !forceUpdate) {
+    console.log(`⏭  Task "${task.id}" already exists, skipping. Use --update to overwrite prompt.`);
+    continue;
+  }
+
+  if (existing && forceUpdate) {
+    updateTask(task.id, { prompt: task.prompt });
+    console.log(`🔄 Updated prompt for task "${task.id}"`);
     continue;
   }
 
