@@ -456,6 +456,7 @@ async function runQuery(
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
       settingSources: ['project', 'user'],
+      // TODO: SDK doesn't expose MCP server startup errors — monitor via container logs until upstream support lands
       mcpServers: {
         nanoclaw: {
           command: 'node',
@@ -477,8 +478,8 @@ async function runQuery(
           args: [],
         },
         context7: {
-          command: 'npx',
-          args: ['-y', '@upstash/context7-mcp'],
+          command: 'context7-mcp',
+          args: [],
         },
       },
       hooks: {

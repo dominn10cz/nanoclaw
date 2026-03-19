@@ -37,7 +37,15 @@ DŮLEŽITÉ: Tvůj textový výstup bude přímo odeslán uživateli do chatu. N
    - Deduplikuj — pokud víc zdrojů pokrývá stejné téma, vyber nejlepší zdroj.
    - Pokud článek vypadá jako paywall-only (jen teaser bez obsahu), označ ho [paywall].
 
-4. Vyber 8–12 nejzajímavějších položek a rozděl je do 4 sekcí:
+4. Deduplikace proti předchozím digestům:
+   - Načti soubor \`/workspace/extra/workspace/news-digests/ai-tech/seen-urls.json\` (pokud existuje; pokud ne, považuj za prázdný seznam).
+   - Soubor obsahuje JSON pole URL stringů (nejstarší první).
+   - Přeskoč všechny články, jejichž URL je již v tomto seznamu.
+   - PO vygenerování digestu přidej všechny nové URL článků zahrnutých v digestu na konec pole.
+   - Pokud pole přesáhne 200 položek, odstraň nejstarší záznamy ze začátku, aby zůstalo max 200.
+   - Ulož aktualizovaný seznam zpět do stejného souboru (vytvoř složky pokud neexistují).
+
+5. Vyber 8–12 nejzajímavějších položek a rozděl je do 4 sekcí:
    - 🧠 **AI & LLM** — nové modely, výzkum, API změny, prompt engineering
    - 🤖 **AI Coding & Agents** — vibe coding, agentic coding, IDE s AI, autonomní agenti, coding assistants, MCP, Claude Code, Cursor, Copilot, Windsurf, Devin, Codex, agent frameworks
    - 🦾 **Robotika & Hardware** — roboti, čipy, embedded AI, fyzický svět
@@ -45,7 +53,7 @@ DŮLEŽITÉ: Tvůj textový výstup bude přímo odeslán uživateli do chatu. N
 
    Každá sekce by měla mít 2-4 položky. Pokud sekce nemá nic, vynech ji.
 
-5. Výstup formátuj PŘESNĚ takto (vše česky, přeložené titulky i shrnutí):
+6. Výstup formátuj PŘESNĚ takto (vše česky, přeložené titulky i shrnutí):
 
 📰 AI & Tech Digest — {dnešní datum, formát "19. března 2026"}
 
@@ -71,12 +79,13 @@ DŮLEŽITÉ: Tvůj textový výstup bude přímo odeslán uživateli do chatu. N
 
 💡 **Zajímavý trend:** 1 věta o tom, co spojuje dnešní novinky (volitelné, jen pokud je to přirozené).
 
-6. Ulož digest do souboru: \`/workspace/extra/workspace/news-digests/ai-tech/{YYYY-MM-DD}.md\` (vytvoř složky pokud neexistují). Datum v názvu souboru = dnešní datum.
+7. Ulož digest do souboru: \`/workspace/extra/workspace/news-digests/ai-tech/{YYYY-MM-DD}.md\` (vytvoř složky pokud neexistují). Datum v názvu souboru = dnešní datum.
 
-7. POVINNÉ — Pošli digest emailem pomocí mcp__gmail__send_email toolu (MUSÍŠ tento tool zavolat, nepiš kód, zavolej přímo MCP tool).
+8. POVINNÉ — Pošli digest emailem pomocí mcp__gmail__send_email toolu (MUSÍŠ tento tool zavolat, nepiš kód, zavolej přímo MCP tool).
    - Příjemci (to): domin.simunek@gmail.com, dominik.simunek@mytimi.cz
    - Předmět (subject): 📰 AI & Tech Digest — {dnešní datum}
-   - Tělo (body): HTML verze digestu (ne plain text)
+   - Tělo (body): Plain-text verze digestu (bez HTML tagů, čistý text se zachovaným formátováním)
+   - HTML tělo (htmlBody): HTML verze digestu
 
    HTML email formátuj takto:
    - Každá sekce (🧠 AI & LLM, 🤖 AI Coding & Agents, atd.) jako <h2> s emoji
@@ -86,9 +95,11 @@ DŮLEŽITÉ: Tvůj textový výstup bude přímo odeslán uživateli do chatu. N
    - Minimální inline CSS: font-family: -apple-system, sans-serif; max-width: 600px; line-height: 1.6
    - Odkazy modré, podtržené — standardní email styl
 
-8. AŽ PO odeslání emailu a uložení souboru vypiš digest jako svou textovou odpověď (ta se pošle do Telegramu).
+   DŮLEŽITÉ: Musíš poslat OBA parametry — body (plain text fallback pro klienty bez HTML) i htmlBody (bohatý HTML formát).
 
-9. Pokud žádný feed neobsahuje články za posledních 24h, pošli krátkou zprávu: "📰 Dnes žádné významné novinky v AI & tech." (soubor stejně vytvoř, s touto zprávou, email neposílej).`;
+9. AŽ PO odeslání emailu a uložení souboru vypiš digest jako svou textovou odpověď (ta se pošle do Telegramu).
+
+10. Pokud žádný feed neobsahuje články za posledních 24h, pošli krátkou zprávu: "📰 Dnes žádné významné novinky v AI & tech." (soubor stejně vytvoř, s touto zprávou, email neposílej).`;
 
 const MARKETING_PROMPT = `Jsi news curator. Tvým úkolem je připravit týdenní digest marketing & analytics novinek v češtině.
 
@@ -115,11 +126,19 @@ DŮLEŽITÉ: Tvůj textový výstup bude přímo odeslán uživateli do chatu. N
    - Deduplikuj — pokud víc feedů pokrývá stejné téma, vyber nejlepší zdroj.
    - Pokud článek vypadá jako paywall-only (jen teaser bez obsahu), označ ho [paywall].
 
-4. Vyber 5–7 nejzajímavějších článků a seřaď je podle relevance (ne chronologicky).
+4. Deduplikace proti předchozím digestům:
+   - Načti soubor \`/workspace/extra/workspace/news-digests/marketing-analytics/seen-urls.json\` (pokud existuje; pokud ne, považuj za prázdný seznam).
+   - Soubor obsahuje JSON pole URL stringů (nejstarší první).
+   - Přeskoč všechny články, jejichž URL je již v tomto seznamu.
+   - PO vygenerování digestu přidej všechny nové URL článků zahrnutých v digestu na konec pole.
+   - Pokud pole přesáhne 100 položek, odstraň nejstarší záznamy ze začátku, aby zůstalo max 100.
+   - Ulož aktualizovaný seznam zpět do stejného souboru (vytvoř složky pokud neexistují).
 
-5. Zjisti číslo aktuálního ISO týdne.
+5. Vyber 5–7 nejzajímavějších článků a seřaď je podle relevance (ne chronologicky).
 
-6. Výstup formátuj PŘESNĚ takto (vše česky, přeložené titulky i shrnutí):
+6. Zjisti číslo aktuálního ISO týdne.
+
+7. Výstup formátuj PŘESNĚ takto (vše česky, přeložené titulky i shrnutí):
 
 📊 Marketing & Analytics Digest — týden {číslo týdne}
 
@@ -135,12 +154,13 @@ DŮLEŽITÉ: Tvůj textový výstup bude přímo odeslán uživateli do chatu. N
 
 💡 **Zajímavý trend:** 1 věta o tom, co spojuje novinky tohoto týdne (volitelné, jen pokud je to přirozené).
 
-7. Ulož digest do souboru: \`/workspace/extra/workspace/news-digests/marketing-analytics/{YYYY}-W{WW}.md\` (vytvoř složky pokud neexistují). Číslo týdne = aktuální ISO týden.
+8. Ulož digest do souboru: \`/workspace/extra/workspace/news-digests/marketing-analytics/{YYYY}-W{WW}.md\` (vytvoř složky pokud neexistují). Číslo týdne = aktuální ISO týden.
 
-8. POVINNÉ — Pošli digest emailem pomocí mcp__gmail__send_email toolu (MUSÍŠ tento tool zavolat, nepiš kód, zavolej přímo MCP tool).
+9. POVINNÉ — Pošli digest emailem pomocí mcp__gmail__send_email toolu (MUSÍŠ tento tool zavolat, nepiš kód, zavolej přímo MCP tool).
    - Příjemci (to): domin.simunek@gmail.com, dominik.simunek@mytimi.cz
    - Předmět (subject): 📊 Marketing & Analytics Digest — týden {číslo týdne}
-   - Tělo (body): HTML verze digestu (ne plain text)
+   - Tělo (body): Plain-text verze digestu (bez HTML tagů, čistý text se zachovaným formátováním)
+   - HTML tělo (htmlBody): HTML verze digestu
 
    HTML email formátuj takto:
    - Nadpis digestu jako <h1>
@@ -150,9 +170,11 @@ DŮLEŽITÉ: Tvůj textový výstup bude přímo odeslán uživateli do chatu. N
    - Minimální inline CSS: font-family: -apple-system, sans-serif; max-width: 600px; line-height: 1.6
    - Odkazy modré, podtržené — standardní email styl
 
-9. AŽ PO odeslání emailu a uložení souboru vypiš digest jako svou textovou odpověď (ta se pošle do Telegramu).
+   DŮLEŽITÉ: Musíš poslat OBA parametry — body (plain text fallback pro klienty bez HTML) i htmlBody (bohatý HTML formát).
 
-10. Pokud žádný feed neobsahuje články za posledních 7 dní, pošli krátkou zprávu: "📊 Tento týden žádné významné novinky v marketingu & analytics." (soubor stejně vytvoř, s touto zprávou, email neposílej).`;
+10. AŽ PO odeslání emailu a uložení souboru vypiš digest jako svou textovou odpověď (ta se pošle do Telegramu).
+
+11. Pokud žádný feed neobsahuje články za posledních 7 dní, pošli krátkou zprávu: "📊 Tento týden žádné významné novinky v marketingu & analytics." (soubor stejně vytvoř, s touto zprávou, email neposílej).`;
 
 const tasks = [
   {
@@ -161,7 +183,7 @@ const tasks = [
     chat_jid: 'tg:912403553',
     prompt: AI_TECH_PROMPT,
     schedule_type: 'cron' as const,
-    schedule_value: '30 9 * * *',
+    schedule_value: '0 9 * * *',
     context_mode: 'isolated' as const,
     status: 'active' as const,
   },
@@ -187,8 +209,17 @@ for (const task of tasks) {
   }
 
   if (existing && forceUpdate) {
-    updateTask(task.id, { prompt: task.prompt });
-    console.log(`🔄 Updated prompt for task "${task.id}"`);
+    const nextRun = CronExpressionParser.parse(task.schedule_value, {
+      tz: TIMEZONE,
+    })
+      .next()
+      .toISOString();
+    updateTask(task.id, {
+      prompt: task.prompt,
+      schedule_value: task.schedule_value,
+      next_run: nextRun,
+    });
+    console.log(`🔄 Updated task "${task.id}" (prompt, schedule, next_run: ${nextRun})`);
     continue;
   }
 
