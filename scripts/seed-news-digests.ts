@@ -73,7 +73,22 @@ DŮLEŽITÉ: Tvůj textový výstup bude přímo odeslán uživateli do chatu. N
 
 6. Ulož digest do souboru: \`/workspace/extra/workspace/news-digests/ai-tech/{YYYY-MM-DD}.md\` (vytvoř složky pokud neexistují). Datum v názvu souboru = dnešní datum.
 
-7. Pokud žádný feed neobsahuje články za posledních 24h, pošli krátkou zprávu: "📰 Dnes žádné významné novinky v AI & tech." (soubor stejně vytvoř, s touto zprávou).`;
+7. POVINNÉ — Pošli digest emailem pomocí mcp__gmail__send_email toolu (MUSÍŠ tento tool zavolat, nepiš kód, zavolej přímo MCP tool).
+   - Příjemci (to): domin.simunek@gmail.com, dominik.simunek@mytimi.cz
+   - Předmět (subject): 📰 AI & Tech Digest — {dnešní datum}
+   - Tělo (body): HTML verze digestu (ne plain text)
+
+   HTML email formátuj takto:
+   - Každá sekce (🧠 AI & LLM, 🤖 AI Coding & Agents, atd.) jako <h2> s emoji
+   - Každý článek jako <h3> s odkazem (<a href="...">) přímo v názvu
+   - Shrnutí jako <p> pod názvem
+   - Trend na konci jako <blockquote>
+   - Minimální inline CSS: font-family: -apple-system, sans-serif; max-width: 600px; line-height: 1.6
+   - Odkazy modré, podtržené — standardní email styl
+
+8. AŽ PO odeslání emailu a uložení souboru vypiš digest jako svou textovou odpověď (ta se pošle do Telegramu).
+
+9. Pokud žádný feed neobsahuje články za posledních 24h, pošli krátkou zprávu: "📰 Dnes žádné významné novinky v AI & tech." (soubor stejně vytvoř, s touto zprávou, email neposílej).`;
 
 const MARKETING_PROMPT = `Jsi news curator. Tvým úkolem je připravit týdenní digest marketing & analytics novinek v češtině.
 
@@ -122,7 +137,22 @@ DŮLEŽITÉ: Tvůj textový výstup bude přímo odeslán uživateli do chatu. N
 
 7. Ulož digest do souboru: \`/workspace/extra/workspace/news-digests/marketing-analytics/{YYYY}-W{WW}.md\` (vytvoř složky pokud neexistují). Číslo týdne = aktuální ISO týden.
 
-8. Pokud žádný feed neobsahuje články za posledních 7 dní, pošli krátkou zprávu: "📊 Tento týden žádné významné novinky v marketingu & analytics." (soubor stejně vytvoř, s touto zprávou).`;
+8. POVINNÉ — Pošli digest emailem pomocí mcp__gmail__send_email toolu (MUSÍŠ tento tool zavolat, nepiš kód, zavolej přímo MCP tool).
+   - Příjemci (to): domin.simunek@gmail.com, dominik.simunek@mytimi.cz
+   - Předmět (subject): 📊 Marketing & Analytics Digest — týden {číslo týdne}
+   - Tělo (body): HTML verze digestu (ne plain text)
+
+   HTML email formátuj takto:
+   - Nadpis digestu jako <h1>
+   - Každý článek jako <h3> s odkazem (<a href="...">) přímo v názvu
+   - Shrnutí jako <p> pod názvem
+   - Trend na konci jako <blockquote>
+   - Minimální inline CSS: font-family: -apple-system, sans-serif; max-width: 600px; line-height: 1.6
+   - Odkazy modré, podtržené — standardní email styl
+
+9. AŽ PO odeslání emailu a uložení souboru vypiš digest jako svou textovou odpověď (ta se pošle do Telegramu).
+
+10. Pokud žádný feed neobsahuje články za posledních 7 dní, pošli krátkou zprávu: "📊 Tento týden žádné významné novinky v marketingu & analytics." (soubor stejně vytvoř, s touto zprávou, email neposílej).`;
 
 const tasks = [
   {

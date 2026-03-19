@@ -9,7 +9,7 @@ Pravidelný automatický digest novinek doručovaný přes Telegram. Dva nezávi
 
 ## Jak to má fungovat
 
-NanoClaw scheduled task (cron) → kontejner fetchne RSS feedy → Claude zparsuje a sumarizuje → výsledek se pošle do mého Telegram chatu.
+NanoClaw scheduled task (cron) → kontejner fetchne RSS feedy → Claude zparsuje a sumarizuje → výsledek se pošle do mého Telegram chatu + emailem na domin.simunek@gmail.com a dominik.simunek@mytimi.cz (HTML formát přes Gmail MCP server).
 
 Žádný externí nástroj (n8n, Ollama). Vše v rámci existující NanoClaw infrastruktury.
 
