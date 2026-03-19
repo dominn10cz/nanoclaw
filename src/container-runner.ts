@@ -242,6 +242,19 @@ function buildContainerArgs(
     args.push('-e', `SUPABASE_ACCESS_TOKEN=${SUPABASE_ACCESS_TOKEN}`);
   }
 
+  // Pass Freelo credentials for auto-triage (news digest → research inbox)
+  const freeloEnv = readEnvFile([
+    'FREELO_API_KEY',
+    'FREELO_EMAIL',
+    'FREELO_PROJECT_ID',
+    'FREELO_TASKLIST_ID',
+  ]);
+  for (const [key, value] of Object.entries(freeloEnv)) {
+    if (value) {
+      args.push('-e', `${key}=${value}`);
+    }
+  }
+
   // Runtime-specific args for host gateway resolution
   args.push(...hostGatewayArgs());
 

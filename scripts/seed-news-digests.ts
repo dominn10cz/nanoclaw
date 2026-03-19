@@ -11,6 +11,72 @@ import { TIMEZONE } from '../src/config.js';
 
 initDatabase();
 
+const FREELO_TRIAGE_PROMPT = `
+
+## Auto-triage do Freelo Research Inbox
+
+Po vygenerování digestu vyhodnoť každý článek podle rozhodovacích klíčů níže. Vyber **max 3 nejrelevantnější** a vytvoř je jako tasky ve Freelo.
+
+### Rozhodovací klíče
+
+Stačí splnit **1+ klíč** pro vytvoření tasku:
+
+**🔴 Vždy vytvořit (breaking/high-impact):**
+- Breaking change v platformě: GA4, GTM, Meta Ads API, Google Ads API, Consent Mode, BigQuery
+- Deprecation/migrace s deadlinem vyžadující akci
+- Bezpečnostní incident v stacku (Supabase, Vercel, Next.js, npm)
+- AI agenti — nový produkt, protokol, zásadní update (computer-use agent, MCP rozšíření, Claude Agent SDK)
+
+**🟠 Vytvořit pokud akční (nový nástroj/přístup):**
+- Nový AI nástroj/framework pro můj stack — Claude API, MCP server, Vercel AI SDK
+- AI agent use case/architektura — workflow pattern, skill systém, multi-agent orchestrace
+- Nový přístup k automatizaci nasaditelný v NanoClaw nebo pro klienty
+- Nástroj nahrazující drahý SaaS (vibecoding filosofie)
+
+**🟡 Vytvořit pokud relevantní pro klienty:**
+- Změna v reklamních platformách — nový formát, bidding, audience (Meta, Google Ads)
+- SEO/SERP změna — algorithm update, AI Overviews
+- E-commerce/conversion — measurement protocol, server-side tracking
+
+**⚪ Nevytvářet (šum):**
+- Opinion pieces bez konkrétní akce
+- Funding/akvizice bez dopadu na stack
+- Základní tutoriály
+- Hardware bez vazby na vývoj
+- Akademický výzkum bez praktické aplikace
+
+### Postup
+
+1. Projdi všechny články z digestu a ohodnoť je podle klíčů výše.
+2. Vyber max 3 nejrelevantnější (preferuj 🔴 > 🟠 > 🟡).
+3. Pro každý vybraný článek:
+
+   a) Vytvoř task:
+   \`\`\`bash
+   TASK_RESPONSE=$(curl -s -u "$FREELO_EMAIL:$FREELO_API_KEY" \\
+     -X POST -H "Content-Type: application/json" \\
+     -d '{"name": "NÁZEV (max 100 znaků, česky)"}' \\
+     "https://api.freelo.io/v1/project/$FREELO_PROJECT_ID/tasklist/$FREELO_TASKLIST_ID/tasks")
+   TASK_ID=$(echo "$TASK_RESPONSE" | grep -o '"id":[0-9]*' | head -1 | grep -o '[0-9]*')
+   \`\`\`
+
+   b) Přidej komentář s kontextem:
+   \`\`\`bash
+   curl -s -u "$FREELO_EMAIL:$FREELO_API_KEY" \\
+     -X POST -H "Content-Type: application/json" \\
+     -d '{"content": "<p>2-3 věty proč to stojí za rešerši.</p><p><a href=\\"URL\\">Zdroj</a></p><p>Klíč: 🔴/🟠/🟡 popis</p>"}' \\
+     "https://api.freelo.io/v1/task/$TASK_ID/comments"
+   \`\`\`
+
+4. **Error handling:** Pokud curl selže (chybí credentials, API error), pokračuj dál — digest MUSÍ být doručen vždy. Triage je bonus.
+5. Pokud žádný článek nesplňuje klíče, nevytvářej žádný task.
+
+### Souhrn do Telegram zprávy
+
+Na konec Telegram zprávy (za digest) přidej řádek:
+- Pokud byly vytvořeny tasky: \`📋 Research inbox: X nových tasků ve Freelo\`
+- Pokud nebyly: nic nepřidávej`;
+
 const AI_TECH_PROMPT = `Jsi news curator. Tvým úkolem je připravit denní digest AI & tech novinek v češtině.
 
 DŮLEŽITÉ: Tvůj textový výstup bude přímo odeslán uživateli do chatu. Nepoužívej send_message. Nebalíkuj výstup do <internal> tagů. Prostě vypiš hotový digest jako svou odpověď.
@@ -97,9 +163,12 @@ DŮLEŽITÉ: Tvůj textový výstup bude přímo odeslán uživateli do chatu. N
 
    DŮLEŽITÉ: Musíš poslat OBA parametry — body (plain text fallback pro klienty bez HTML) i htmlBody (bohatý HTML formát).
 
-9. AŽ PO odeslání emailu a uložení souboru vypiš digest jako svou textovou odpověď (ta se pošle do Telegramu).
+9. AŽ PO odeslání emailu a uložení souboru proveď auto-triage do Freelo Research Inbox (viz sekce níže). Triage je bonus — pokud selže, pokračuj.
 
-10. Pokud žádný feed neobsahuje články za posledních 24h, pošli krátkou zprávu: "📰 Dnes žádné významné novinky v AI & tech." (soubor stejně vytvoř, s touto zprávou, email neposílej).`;
+10. Vypiš digest jako svou textovou odpověď (ta se pošle do Telegramu). Pokud triage vytvořil tasky, přidej na konec řádek se souhrnem.
+
+11. Pokud žádný feed neobsahuje články za posledních 24h, pošli krátkou zprávu: "📰 Dnes žádné významné novinky v AI & tech." (soubor stejně vytvoř, s touto zprávou, email neposílej, triage nedělej).
+${FREELO_TRIAGE_PROMPT}`;
 
 const MARKETING_PROMPT = `Jsi news curator. Tvým úkolem je připravit týdenní digest marketing & analytics novinek v češtině.
 
@@ -172,9 +241,12 @@ DŮLEŽITÉ: Tvůj textový výstup bude přímo odeslán uživateli do chatu. N
 
    DŮLEŽITÉ: Musíš poslat OBA parametry — body (plain text fallback pro klienty bez HTML) i htmlBody (bohatý HTML formát).
 
-10. AŽ PO odeslání emailu a uložení souboru vypiš digest jako svou textovou odpověď (ta se pošle do Telegramu).
+10. AŽ PO odeslání emailu a uložení souboru proveď auto-triage do Freelo Research Inbox (viz sekce níže). Triage je bonus — pokud selže, pokračuj.
 
-11. Pokud žádný feed neobsahuje články za posledních 7 dní, pošli krátkou zprávu: "📊 Tento týden žádné významné novinky v marketingu & analytics." (soubor stejně vytvoř, s touto zprávou, email neposílej).`;
+11. Vypiš digest jako svou textovou odpověď (ta se pošle do Telegramu). Pokud triage vytvořil tasky, přidej na konec řádek se souhrnem.
+
+12. Pokud žádný feed neobsahuje články za posledních 7 dní, pošli krátkou zprávu: "📊 Tento týden žádné významné novinky v marketingu & analytics." (soubor stejně vytvoř, s touto zprávou, email neposílej, triage nedělej).
+${FREELO_TRIAGE_PROMPT}`;
 
 const tasks = [
   {
