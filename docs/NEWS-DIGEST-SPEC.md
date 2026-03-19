@@ -45,20 +45,25 @@ NanoClaw scheduled task (cron) → kontejner fetchne RSS feedy → Claude zparsu
 1. **Název článku** — 1-2 věty shrnutí
    🔗 odkaz
 
-🦾 **Robotika & Hardware**
+🤖 **AI Coding & Agents**
 
 2. **Název článku** — 1-2 věty shrnutí
    🔗 odkaz
 
-💻 **Tech & Dev**
+🦾 **Robotika & Hardware**
 
 3. **Název článku** — 1-2 věty shrnutí
+   🔗 odkaz
+
+💻 **Tech & Dev**
+
+4. **Název článku** — 1-2 věty shrnutí
    🔗 odkaz
 
 💡 **Zajímavý trend:** volitelná 1 věta o tom co spojuje dnešní novinky
 ```
 
-Sekce bez obsahu se vynechávají. Celkem 7-10 položek z RSS zdrojů.
+Sekce bez obsahu se vynechávají. Celkem 8-12 položek z RSS zdrojů.
 
 ### Marketing & Analytics
 
@@ -76,7 +81,7 @@ Sekce bez obsahu se vynechávají. Celkem 7-10 položek z RSS zdrojů.
 ## Pravidla
 
 - **Jazyk:** česky (i když zdroje jsou anglicky)
-- **AI digest: 7-10 článků** ve 3 sekcích, **Marketing: 5-7 článků** — kvalita > kvantita
+- **AI digest: 8-12 článků** ve 4 sekcích, **Marketing: 5-7 článků** — kvalita > kvantita
 - **Seřadit podle relevance**, ne chronologicky
 - **Přeskočit** PR/marketing články bez substance, duplicity, a články starší než 24h (denní) / 7 dní (týdenní)
 - **Žádné paywall články** — pokud feed obsahuje jen teaser, zmínit ale označit jako paywall

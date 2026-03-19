@@ -36,10 +36,11 @@ DŮLEŽITÉ: Tvůj textový výstup bude přímo odeslán uživateli do chatu. N
    - Deduplikuj — pokud víc zdrojů pokrývá stejné téma, vyber nejlepší zdroj.
    - Pokud článek vypadá jako paywall-only (jen teaser bez obsahu), označ ho [paywall].
 
-4. Vyber 7–10 nejzajímavějších položek a rozděl je do 3 sekcí:
+4. Vyber 8–12 nejzajímavějších položek a rozděl je do 4 sekcí:
    - 🧠 **AI & LLM** — nové modely, výzkum, API změny, prompt engineering
+   - 🤖 **AI Coding & Agents** — vibe coding, agentic coding, IDE s AI, autonomní agenti, coding assistants, MCP, Claude Code, Cursor, Copilot, Windsurf, Devin, Codex, agent frameworks
    - 🦾 **Robotika & Hardware** — roboti, čipy, embedded AI, fyzický svět
-   - 💻 **Tech & Dev** — nástroje, frameworky, open source, developer novinky
+   - 💻 **Tech & Dev** — nástroje, frameworky, open source, developer novinky (které nespadají do AI Coding)
 
    Každá sekce by měla mít 2-4 položky. Pokud sekce nemá nic, vynech ji.
 
@@ -51,6 +52,8 @@ DŮLEŽITÉ: Tvůj textový výstup bude přímo odeslán uživateli do chatu. N
 
 1. **Přeložený název** — 1-2 věty shrnutí česky
    🔗 odkaz
+
+🤖 **AI Coding & Agents**
 
 2. **Přeložený název** — 1-2 věty shrnutí česky
    🔗 odkaz
