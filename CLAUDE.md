@@ -23,9 +23,9 @@ Single Node.js process with skill-based channel system. Channels (WhatsApp, Tele
 | `scripts/seed-news-digests.ts` | Seed news digest scheduled tasks into DB |
 | `docs/NEWS-DIGEST-SPEC.md` | News digest feature spec and RSS feed list |
 
-## Secrets / Credentials / Proxy (OneCLI)
+## Secrets / Credentials / Proxy
 
-API keys, secret keys, OAuth tokens, and auth credentials are managed by the OneCLI gateway — which handles secret injection into containers at request time, so no keys or tokens are ever passed to containers directly. Run `onecli --help`.
+API keys and OAuth tokens live in `.env` (gitignored). The native credential proxy (`src/credential-proxy.ts`) reads them at startup and injects them into container API requests — containers never see real secrets. See `/use-native-credential-proxy` skill.
 
 ## Skills
 
@@ -42,7 +42,7 @@ Four types of skills exist in NanoClaw. See [CONTRIBUTING.md](CONTRIBUTING.md) f
 | `/customize` | Adding channels, integrations, changing behavior |
 | `/debug` | Container issues, logs, troubleshooting |
 | `/update-nanoclaw` | Bring upstream NanoClaw updates into a customized install |
-| `/init-onecli` | Install OneCLI Agent Vault and migrate `.env` credentials to it |
+| `/use-native-credential-proxy` | Switch to `.env`-based credential proxy (no external services) |
 | `/qodo-pr-resolver` | Fetch and fix Qodo PR review issues interactively or in batch |
 | `/get-qodo-rules` | Load org- and repo-level coding rules from Qodo before code tasks |
 
