@@ -14,6 +14,7 @@ import {
   POLL_INTERVAL,
   TELEGRAM_BOT_POOL,
   TIMEZONE,
+  TRIGGER_PATTERN,
 } from './config.js';
 import './channels/index.js';
 import {

@@ -10,8 +10,6 @@ import { logger } from './logger.js';
 /** The container runtime binary name. */
 export const CONTAINER_RUNTIME_BIN = 'docker';
 
-
-
 /** CLI args needed for the container to resolve the host gateway. */
 export function hostGatewayArgs(): string[] {
   // On Linux, host.docker.internal isn't built-in — add it explicitly
