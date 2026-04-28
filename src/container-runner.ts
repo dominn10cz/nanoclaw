@@ -290,13 +290,8 @@ function buildContainerArgs(
     args.push('-e', `SUPABASE_ACCESS_TOKEN=${SUPABASE_ACCESS_TOKEN}`);
   }
 
-  // Pass Freelo credentials for auto-triage (news digest → research inbox)
-  const freeloEnv = readEnvFile([
-    'FREELO_API_KEY',
-    'FREELO_EMAIL',
-    'FREELO_PROJECT_ID',
-    'FREELO_TASKLIST_ID',
-  ]);
+  // Pass Freelo credentials for the freelo skill running inside the container
+  const freeloEnv = readEnvFile(['FREELO_API_KEY', 'FREELO_EMAIL']);
   for (const [key, value] of Object.entries(freeloEnv)) {
     if (value) {
       args.push('-e', `${key}=${value}`);
