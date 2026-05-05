@@ -126,6 +126,27 @@ onecli secrets list                                    # all vault secrets (with
 
 If you've just enabled `mode all`, no container restart is needed — the gateway looks up secrets per request, so the next API call from the running container will see the new credentials.
 
+### Gotcha: OAuth subscription token needs the `claude` provider
+
+OneCLI's gateway routes credential injection by the **request header** the container sends:
+
+- `x-api-key: placeholder` → matches an `anthropic` secret containing an API key (`sk-ant-api-…`)
+- `Authorization: Bearer placeholder` → matches an `anthropic` secret containing an OAuth subscription token (`sk-ant-oat0-…`)
+
+By default OneCLI's `applyContainerConfig` injects `ANTHROPIC_API_KEY=placeholder` into containers, so the Claude Agent SDK sends `x-api-key`. That works for API keys, but if your secret is a **subscription OAuth token**, the gateway will return `credential_not_found` because the request header form doesn't match the credential type.
+
+**Fix:** register the `claude` provider so it injects `ANTHROPIC_AUTH_TOKEN=placeholder` (which the SDK uses as `Authorization: Bearer …`):
+
+1. In `.env`, set `ANTHROPIC_BASE_URL=https://api.anthropic.com/` (presence of this var triggers the provider's env contribution; the URL is unchanged from the SDK default).
+2. In `src/providers/index.ts`, append `import './claude.js';` so the provider self-registers.
+3. Rebuild host (`pnpm run build`) and restart the service.
+
+After this, new container spawns will have both `ANTHROPIC_API_KEY=placeholder` AND `ANTHROPIC_AUTH_TOKEN=placeholder` set; the SDK prefers `AUTH_TOKEN` and sends `Authorization: Bearer`, which OneCLI matches against the OAuth secret. Symptom-before / symptom-after: bot replies "Invalid API key · Fix external API key" → bot replies normally.
+
+### Gotcha: OneCLI OAuth-app grants are NOT auto-injected by `mode all`
+
+`mode all` covers vault **secrets** (API keys/tokens you paste into OneCLI). It does **not** cover **apps** that use OAuth (Gmail, Google Calendar, Drive, etc. via `onecli apps connect`). For each agent that should use a connected OAuth app, you must explicitly grant access via the web UI at `http://127.0.0.1:10254/agents?manage=<agent-id>` (or the CLI equivalent if/when added). Symptom: agent calls `mcp__gmail__*` and gets `access_restricted` with a `manage_url` field pointing at the agent's OneCLI page.
+
 ### Requiring approval for credential use
 
 Approval-gating credentialed actions is a **two-sided** flow:
