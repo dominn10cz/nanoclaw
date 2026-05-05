@@ -8,6 +8,7 @@ import {
   setContinuation,
 } from './db/session-state.js';
 import { formatMessages, extractRouting, categorizeMessage, isClearCommand, isRunnerCommand, stripInternalTags, type RoutingContext } from './formatter.js';
+import { classifyComplexity, needsUpgrade, readModelPreferences, selectModel, type ComplexityTier, type ModelPreferences } from './model-selection.js';
 import type { AgentProvider, AgentQuery, ProviderEvent } from './providers/types.js';
 
 const POLL_INTERVAL_MS = 1000;
@@ -46,6 +47,11 @@ export interface PollLoopConfig {
  * 6. Loop
  */
 export async function runPollLoop(config: PollLoopConfig): Promise<void> {
+  // Per-group model preferences. Loaded once at startup; container.json
+  // and model-preferences.json are mounted read-only and never change
+  // mid-run, so re-reading per batch would just be wasted IO.
+  const modelPreferences: ModelPreferences = readModelPreferences('/workspace/agent');
+
   // Resume the agent's prior session from a previous container run if one
   // was persisted. The continuation is opaque to the poll-loop — the
   // provider decides how to use it (Claude resumes a .jsonl transcript,
@@ -160,18 +166,30 @@ export async function runPollLoop(config: PollLoopConfig): Promise<void> {
 
     log(`Processing ${keep.length} message(s), kinds: ${[...new Set(keep.map((m) => m.kind))].join(',')}`);
 
+    // Pick a Claude model for this query based on the initial batch.
+    // The query stays open across follow-up pushes (no new sdkQuery call)
+    // and the SDK fixes the model at sdkQuery() time, so a follow-up that
+    // escalates complexity (routine → complex) cannot upgrade in-place.
+    // The follow-up poller below handles that by ending the query when
+    // it spots an upgrade — outer loop then re-spawns with the new model.
+    const { tier, model } = selectModel(prompt, modelPreferences, {
+      hasImages: detectHasImages(keep),
+      isScheduledTask: detectScheduledTask(keep),
+    });
+
     const query = config.provider.query({
       prompt,
       continuation,
       cwd: config.cwd,
       systemContext: config.systemContext,
+      model,
     });
 
     // Process the query while concurrently polling for new messages
     const skippedSet = new Set(skipped);
     const processingIds = ids.filter((id) => !commandIds.includes(id) && !skippedSet.has(id));
     try {
-      const result = await processQuery(query, routing, processingIds, config.providerName);
+      const result = await processQuery(query, routing, processingIds, config.providerName, tier, modelPreferences);
       if (result.continuation && result.continuation !== continuation) {
         continuation = result.continuation;
         setContinuation(config.providerName, continuation);
@@ -250,6 +268,8 @@ async function processQuery(
   routing: RoutingContext,
   initialBatchIds: string[],
   providerName: string,
+  currentTier: ComplexityTier,
+  modelPreferences: ModelPreferences,
 ): Promise<QueryResult> {
   let queryContinuation: string | undefined;
   let done = false;
@@ -265,8 +285,9 @@ async function processQuery(
   // will kill the container and messages get reset to pending.
   let pollInFlight = false;
   let endedForCommand = false;
+  let endedForUpgrade = false;
   const pollHandle = setInterval(() => {
-    if (done || pollInFlight || endedForCommand) return;
+    if (done || pollInFlight || endedForCommand || endedForUpgrade) return;
     pollInFlight = true;
 
     void (async () => {
@@ -296,6 +317,34 @@ async function processQuery(
         // host-generated welcome trigger with null thread vs a Discord DM reply).
         const newMessages = pending.filter((m) => m.kind !== 'system');
         if (newMessages.length === 0) return;
+
+        // Tier-upgrade gate: the SDK fixed `model` when this query opened, so
+        // a complex follow-up arriving in a sonnet-tier query keeps running
+        // on sonnet. End the query without claiming the rows — outer loop
+        // reprocesses them with a fresh sdkQuery(). Done BEFORE markProcessing
+        // so unclaimed rows stay visible to the outer getPendingMessages query
+        // (processing_ack would hide them otherwise).
+        //
+        // Skip the respawn when current and new tier map to the SAME model
+        // (e.g. all three tiers point at opus-4-7 — common when the user runs
+        // on an Anthropic subscription where token cost is flat). Without
+        // this guard every routine→moderate transition burns a 1-2s SDK
+        // boot for no model change.
+        const followupPrompt = formatMessages(newMessages);
+        const followupTier = classifyComplexity(followupPrompt, {
+          hasImages: detectHasImages(newMessages),
+          isScheduledTask: detectScheduledTask(newMessages),
+        });
+        if (needsUpgrade(currentTier, followupTier)) {
+          const currentModel = modelPreferences[currentTier];
+          const followupModel = modelPreferences[followupTier];
+          if (currentModel !== followupModel) {
+            log(`Tier upgrade ${currentTier} → ${followupTier} (model ${currentModel} → ${followupModel}) — ending query for fresh sdkQuery`);
+            endedForUpgrade = true;
+            query.end();
+            return;
+          }
+        }
 
         const newIds = newMessages.map((m) => m.id);
         markProcessing(newIds);
@@ -488,4 +537,26 @@ function sendToDestination(dest: DestinationEntry, body: string, routing: Routin
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function detectHasImages(messages: MessageInRow[]): boolean {
+  for (const msg of messages) {
+    try {
+      const content = JSON.parse(msg.content) as { attachments?: Array<{ type?: unknown }> };
+      const attachments = content.attachments;
+      if (Array.isArray(attachments)) {
+        for (const a of attachments) {
+          const t = String(a?.type ?? '').toLowerCase();
+          if (t.includes('image') || t.includes('photo')) return true;
+        }
+      }
+    } catch {
+      // Non-JSON content (treated as plain text in formatter) — no attachments.
+    }
+  }
+  return false;
+}
+
+function detectScheduledTask(messages: MessageInRow[]): boolean {
+  return messages.some((m) => m.kind === 'task');
 }

@@ -47,6 +47,13 @@ export interface QueryInput {
   systemContext?: {
     instructions?: string;
   };
+
+  /**
+   * Specific Claude model to use for this query (e.g. 'claude-sonnet-4-6').
+   * Optional — when omitted, the SDK picks its own default. Set by the
+   * poll-loop based on per-group model preferences and message complexity.
+   */
+  model?: string;
 }
 
 export interface McpServerConfig {
