@@ -50,6 +50,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         ca-certificates \
         curl \
         git \
+        poppler-utils \
         tini \
         unzip \
     && if [ "$INSTALL_CJK_FONTS" = "true" ]; then \
@@ -109,6 +110,12 @@ RUN --mount=type=cache,target=/root/.cache/pnpm \
     pnpm install -g \
         "@gongrzhe/server-gmail-autoauth-mcp@${GMAIL_MCP_VERSION}" \
         "zod-to-json-schema@3.22.5"
+
+# ---- pdf-reader CLI ----------------------------------------------------------
+# Bash wrapper around pdftotext / pdfinfo. Skill folder itself is mounted RO at
+# /app/skills at runtime, but the agent expects `pdf-reader` on PATH.
+COPY skills/pdf-reader/pdf-reader /usr/local/bin/pdf-reader
+RUN chmod +x /usr/local/bin/pdf-reader
 
 # ---- Entrypoint --------------------------------------------------------------
 COPY entrypoint.sh /app/entrypoint.sh
