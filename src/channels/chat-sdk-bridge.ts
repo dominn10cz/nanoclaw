@@ -18,6 +18,8 @@ import {
 } from 'chat';
 import { log } from '../log.js';
 import { SqliteStateAdapter } from '../state-sqlite.js';
+import { processImage } from '../image-processing.js';
+import { transcribeAudio } from '../transcription.js';
 import { registerWebhookAdapter } from '../webhook-server.js';
 import { getAskQuestionRender } from '../db/sessions.js';
 import { normalizeOptions, type NormalizedOption } from './ask-question.js';
@@ -134,6 +136,7 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
     const serialized = message.toJSON() as Record<string, any>;
 
     // Download attachment data before serialization loses fetchData()
+    const transcripts: string[] = [];
     if (message.attachments && message.attachments.length > 0) {
       const enriched = [];
       for (const att of message.attachments) {
@@ -146,17 +149,46 @@ export function createChatSdkBridge(config: ChatSdkBridgeConfig): ChannelAdapter
           width: (att as unknown as Record<string, unknown>).width,
           height: (att as unknown as Record<string, unknown>).height,
         };
+        let buffer: Buffer | null = null;
         if (att.fetchData) {
           try {
-            const buffer = await att.fetchData();
+            buffer = await att.fetchData();
             entry.data = buffer.toString('base64');
           } catch (err) {
             log.warn('Failed to download attachment', { type: att.type, err });
           }
         }
+        // Voice / audio: transcribe via Whisper, drop the base64 to keep DB small.
+        if (att.type === 'audio' && buffer) {
+          const transcript = await transcribeAudio(buffer, att.mimeType);
+          if (transcript) {
+            entry.transcript = transcript;
+            delete entry.data;
+            transcripts.push(transcript);
+          }
+        }
+        // Image: resize + JPEG-recompress so the inbound row doesn't carry a
+        // multi-MB phone photo through the DB and into Claude's vision tokens.
+        if (att.type === 'image' && buffer) {
+          const processed = await processImage(buffer, att.mimeType);
+          if (processed) {
+            entry.data = processed.buffer.toString('base64');
+            entry.mimeType = processed.mimeType;
+            entry.width = processed.width;
+            entry.height = processed.height;
+          }
+        }
         enriched.push(entry);
       }
       serialized.attachments = enriched;
+    }
+
+    // Splice voice transcripts into the message text so the agent reads them
+    // as natural speech rather than `[audio: voice.ogg]`.
+    if (transcripts.length > 0) {
+      const block = transcripts.map((t) => `[Voice transcript: ${t}]`).join('\n');
+      const existing = (serialized.text as string | undefined)?.trim() ?? '';
+      serialized.text = existing ? `${existing}\n\n${block}` : block;
     }
 
     // Extract reply context via platform-specific hook

@@ -9,7 +9,7 @@ import {
 } from './db/session-state.js';
 import { formatMessages, extractRouting, categorizeMessage, isClearCommand, isRunnerCommand, stripInternalTags, type RoutingContext } from './formatter.js';
 import { classifyComplexity, needsUpgrade, readModelPreferences, selectModel, type ComplexityTier, type ModelPreferences } from './model-selection.js';
-import type { AgentProvider, AgentQuery, ProviderEvent } from './providers/types.js';
+import type { AgentProvider, AgentQuery, ContentBlock, ImageMediaType, ProviderEvent } from './providers/types.js';
 
 const POLL_INTERVAL_MS = 1000;
 const ACTIVE_POLL_INTERVAL_MS = 500;
@@ -162,9 +162,11 @@ export async function runPollLoop(config: PollLoopConfig): Promise<void> {
 
     // Format messages: passthrough commands get raw text (only if the
     // provider natively handles slash commands), others get XML.
-    const prompt = formatMessagesWithCommands(keep, config.provider.supportsNativeSlashCommands);
+    const promptText = formatMessagesWithCommands(keep, config.provider.supportsNativeSlashCommands);
+    const promptImages = collectInboundImages(keep);
+    const prompt = buildPromptInput(promptText, promptImages);
 
-    log(`Processing ${keep.length} message(s), kinds: ${[...new Set(keep.map((m) => m.kind))].join(',')}`);
+    log(`Processing ${keep.length} message(s), kinds: ${[...new Set(keep.map((m) => m.kind))].join(',')}${promptImages.length ? `, images: ${promptImages.length}` : ''}`);
 
     // Pick a Claude model for this query based on the initial batch.
     // The query stays open across follow-up pushes (no new sdkQuery call)
@@ -172,7 +174,7 @@ export async function runPollLoop(config: PollLoopConfig): Promise<void> {
     // escalates complexity (routine → complex) cannot upgrade in-place.
     // The follow-up poller below handles that by ending the query when
     // it spots an upgrade — outer loop then re-spawns with the new model.
-    const { tier, model } = selectModel(prompt, modelPreferences, {
+    const { tier, model } = selectModel(promptText, modelPreferences, {
       hasImages: detectHasImages(keep),
       isScheduledTask: detectScheduledTask(keep),
     });
@@ -373,9 +375,11 @@ async function processQuery(
         if (done) return;
 
         const keptIds = keep.map((m) => m.id);
-        const prompt = formatMessages(keep);
-        log(`Pushing ${keep.length} follow-up message(s) into active query`);
-        query.push(prompt);
+        const followupText = formatMessages(keep);
+        const followupImages = collectInboundImages(keep);
+        const followupPayload = buildPromptInput(followupText, followupImages);
+        log(`Pushing ${keep.length} follow-up message(s) into active query${followupImages.length ? ` (images: ${followupImages.length})` : ''}`);
+        query.push(followupPayload);
         markCompleted(keptIds);
       } catch (err) {
         // Without this catch the rejection escapes the void IIFE and Node
@@ -555,6 +559,80 @@ function detectHasImages(messages: MessageInRow[]): boolean {
     }
   }
   return false;
+}
+
+interface InboundImage {
+  mediaType: ImageMediaType;
+  data: string;
+}
+
+const ALLOWED_IMAGE_MEDIA_TYPES: ReadonlySet<ImageMediaType> = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+]);
+
+function normalizeImageMediaType(raw: string | undefined): ImageMediaType {
+  // Strip any "; codecs=…" or charset suffix Telegram sometimes attaches.
+  const lower = (raw ?? '').split(';')[0].trim().toLowerCase();
+  return ALLOWED_IMAGE_MEDIA_TYPES.has(lower as ImageMediaType)
+    ? (lower as ImageMediaType)
+    : 'image/jpeg';
+}
+
+/**
+ * Walk a batch of inbound messages and collect every image attachment that has
+ * base64 `data`. The host-side bridge already resized + JPEG-recompressed
+ * images on ingest (src/image-processing.ts), so the data here is bounded.
+ *
+ * Used to convert a plain-text prompt into multimodal content blocks for the
+ * Claude SDK. We only collect images with non-empty data — bare metadata
+ * entries (no base64) come from drops, oversized files, or reused references
+ * and would just produce broken vision blocks.
+ */
+function collectInboundImages(messages: MessageInRow[]): InboundImage[] {
+  const out: InboundImage[] = [];
+  for (const msg of messages) {
+    try {
+      const content = JSON.parse(msg.content) as {
+        attachments?: Array<{ type?: unknown; mimeType?: unknown; data?: unknown }>;
+      };
+      const atts = content.attachments;
+      if (!Array.isArray(atts)) continue;
+      for (const a of atts) {
+        const t = String(a?.type ?? '').toLowerCase();
+        if (!t.includes('image') && !t.includes('photo')) continue;
+        const data = typeof a?.data === 'string' ? a.data : '';
+        if (!data) continue;
+        const mediaType = normalizeImageMediaType(typeof a?.mimeType === 'string' ? a.mimeType : undefined);
+        out.push({ mediaType, data });
+      }
+    } catch {
+      // Non-JSON content — no attachments to extract.
+    }
+  }
+  return out;
+}
+
+/**
+ * Combine a formatted text prompt with any image attachments into the shape
+ * the provider expects. Returns the plain string when there are no images so
+ * the existing all-text path is unchanged; otherwise returns a Claude SDK
+ * content-block array (text first, images after — matches Anthropic's
+ * recommended ordering for vision input).
+ */
+function buildPromptInput(text: string, images: InboundImage[]): string | ContentBlock[] {
+  if (images.length === 0) return text;
+  const blocks: ContentBlock[] = [];
+  if (text) blocks.push({ type: 'text', text });
+  for (const img of images) {
+    blocks.push({
+      type: 'image',
+      source: { type: 'base64', media_type: img.mediaType, data: img.data },
+    });
+  }
+  return blocks;
 }
 
 function detectScheduledTask(messages: MessageInRow[]): boolean {

@@ -1,5 +1,15 @@
 import { registerProvider } from './provider-registry.js';
-import type { AgentProvider, AgentQuery, ProviderEvent, ProviderOptions, QueryInput } from './types.js';
+import type { AgentProvider, AgentQuery, ContentBlock, ProviderEvent, ProviderOptions, QueryInput } from './types.js';
+
+function describePrompt(prompt: string | ContentBlock[]): string {
+  if (typeof prompt === 'string') return prompt;
+  const text = prompt
+    .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
+    .map((b) => b.text)
+    .join('\n');
+  const imageCount = prompt.filter((b) => b.type === 'image').length;
+  return imageCount > 0 ? `${text}\n[${imageCount} image(s)]` : text;
+}
 
 /**
  * Mock provider for testing. Returns canned responses.
@@ -32,7 +42,7 @@ export class MockProvider implements AgentProvider {
 
         // Process initial prompt
         yield { type: 'activity' };
-        yield { type: 'result', text: responseFactory(input.prompt) };
+        yield { type: 'result', text: responseFactory(describePrompt(input.prompt)) };
 
         // Process any pushed follow-ups
         while (!ended && !aborted) {
@@ -57,8 +67,8 @@ export class MockProvider implements AgentProvider {
     };
 
     return {
-      push(message: string) {
-        pending.push(message);
+      push(message: string | ContentBlock[]) {
+        pending.push(describePrompt(message));
         waiting?.();
       },
       end() {

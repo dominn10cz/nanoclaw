@@ -27,9 +27,24 @@ export interface ProviderOptions {
   additionalDirectories?: string[];
 }
 
+/**
+ * Anthropic-style content block. A user message can be either a plain string
+ * or an array of these — used for multimodal input (text + images). Provider
+ * implementations translate this into whatever their SDK accepts.
+ */
+export type ImageMediaType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+
+export type ContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'image'; source: { type: 'base64'; media_type: ImageMediaType; data: string } };
+
 export interface QueryInput {
-  /** Initial prompt (already formatted by agent-runner). */
-  prompt: string;
+  /**
+   * Initial prompt (already formatted by agent-runner). String for text-only
+   * messages; ContentBlock[] when the batch contains images so the agent's
+   * SDK can render them as multimodal user input.
+   */
+  prompt: string | ContentBlock[];
 
   /**
    * Opaque continuation token from a previous query. The provider decides
@@ -63,8 +78,11 @@ export interface McpServerConfig {
 }
 
 export interface AgentQuery {
-  /** Push a follow-up message into the active query. */
-  push(message: string): void;
+  /**
+   * Push a follow-up message into the active query. String or multimodal
+   * content blocks (same shape as `QueryInput.prompt`).
+   */
+  push(message: string | ContentBlock[]): void;
 
   /** Signal that no more input will be sent. */
   end(): void;

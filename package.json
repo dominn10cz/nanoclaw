@@ -31,7 +31,9 @@
     "better-sqlite3": "11.10.0",
     "chat": "^4.24.0",
     "cron-parser": "5.5.0",
-    "kleur": "^4.1.5"
+    "kleur": "^4.1.5",
+    "openai": "6.35.0",
+    "sharp": "0.34.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.35.0",
