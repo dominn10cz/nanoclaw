@@ -723,6 +723,19 @@ fi
 if ! grep -qE '^(ANTHROPIC_API_KEY|CLAUDE_CODE_OAUTH_TOKEN)=' .env 2>/dev/null; then
 echo "    $(dim '·')  Add Anthropic credential to .env or OneCLI vault"
 fi
+# Third-party tokens that v1 forks sometimes wired to custom MCP servers (Supabase, GitHub, etc.).
+# In v2, MCP config lives in the container_configs DB table and .env is shadowed inside the
+# container — so any v1 source-level MCP patch silently breaks. Hint the user before they hit it.
+THIRD_PARTY_FOUND=$(grep -hE '^(SUPABASE_ACCESS_TOKEN|GITHUB_TOKEN|GITHUB_PERSONAL_ACCESS_TOKEN|STRIPE_API_KEY|LINEAR_API_KEY|OPENAI_API_KEY|PERPLEXITY_API_KEY|NOTION_TOKEN|JIRA_API_TOKEN|SLACK_BOT_TOKEN)=' .env 2>/dev/null | cut -d= -f1 | sort -u)
+if [ -n "$THIRD_PARTY_FOUND" ]; then
+echo "    $(dim '·')  Third-party tokens in $(bold '.env') may need re-wiring as MCP servers:"
+while IFS= read -r key; do
+echo "         $(dim "- $key")"
+done <<< "$THIRD_PARTY_FOUND"
+echo "       $(dim 'v1 forks often hardcoded MCP servers using these. v2 stores MCP config in the DB')"
+echo "       $(dim 'and .env is shadowed inside the container. See the')"
+echo "       $(dim '\"Gotcha: third-party MCP servers from v1 forks don'"'"'t auto-migrate\" section in CLAUDE.md.')"
+fi
 echo "    $(dim '·')  Run $(bold '/migrate-from-v1') in Claude to finish:"
 echo "       $(dim '- Seed your owner account')"
 echo "       $(dim '- Set access policies')"

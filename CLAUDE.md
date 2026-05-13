@@ -200,6 +200,41 @@ After this, new container spawns will have both `ANTHROPIC_API_KEY=placeholder` 
 
 `mode all` covers vault **secrets** (API keys/tokens you paste into OneCLI). It does **not** cover **apps** that use OAuth (Gmail, Google Calendar, Drive, etc. via `onecli apps connect`). For each agent that should use a connected OAuth app, you must explicitly grant access via the web UI at `http://127.0.0.1:10254/agents?manage=<agent-id>` (or the CLI equivalent if/when added). Symptom: agent calls `mcp__gmail__*` and gets `access_restricted` with a `manage_url` field pointing at the agent's OneCLI page.
 
+### Gotcha: third-party MCP servers from v1 forks don't auto-migrate
+
+If a v1 fork wired a third-party MCP server (Supabase, Stripe, GitHub, Linear, …) by editing `container/agent-runner/src/index.ts` to read a `*_ACCESS_TOKEN` / `*_API_KEY` from `process.env`, the migration to v2 silently breaks it: (1) `.env` is shadowed via Docker bind mount inside the v2 container, so `process.env.<TOKEN>` is empty; (2) MCP config moved from source code into the `container_configs.mcp_servers` table; (3) `migrate-v2.sh` ports data, not source patches. Symptom: agent says "I don't have access to <service> anymore" after migration.
+
+**Restoration recipe** — once per third-party MCP, per agent group that needs it:
+
+```bash
+# 1. Store token in OneCLI vault with host-pattern routing
+onecli secrets create \
+  --name "<Service> Token" --type generic \
+  --value "$TOKEN" \
+  --host-pattern "api.<service>.com" \
+  --header-name "Authorization" --value-format "Bearer {value}"
+
+# 2. Make sure the agent group can see the new secret
+onecli agents list                                     # find the agent id (identifier = agent group id)
+onecli agents set-secret-mode --id <agent-id> --mode all
+# OR (selective): onecli agents set-secrets --id <agent-id> --secret-ids <existing-csv>,<new-id>
+
+# 3. Install the MCP server binary in the per-group image
+./bin/ncl groups config add-package --id <group-id> --npm '<package>@<version>'
+
+# 4. Wire the MCP server in container_configs (token arg is placeholder — proxy injects real value)
+./bin/ncl groups config add-mcp-server --id <group-id> \
+  --name <service> --command <binary> \
+  --args '["--read-only","--access-token","placeholder"]' --env '{}'
+
+# 5. Rebuild image and restart
+./bin/ncl groups restart --id <group-id> --rebuild
+
+# 6. Cleanup: delete the token from .env — secret now lives only in OneCLI vault.
+```
+
+The MCP child process inside the container sends requests with `Authorization: Bearer placeholder`; the OneCLI gateway matches the host pattern and rewrites the header to the real token. The placeholder string never leaves the container's network namespace.
+
 ### Requiring approval for credential use
 
 Approval-gating credentialed actions is a **two-sided** flow:
